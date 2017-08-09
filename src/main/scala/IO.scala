@@ -11,6 +11,8 @@ import collection.mutable.{ArrayStack, ListBuffer}
 
 
 object IO {
+	var filetype = "storage"
+
 	private [storage] val pwidth_default = 5
 	private [storage] val cwidth_default = 8
 
@@ -22,6 +24,10 @@ object IO {
 		else
 			highest << 1
 	}
+
+	def timestamp = Instant.now
+
+	def datetime = OffsetDateTime.now
 }
 
 abstract class IO extends IOConstants {
@@ -960,7 +966,7 @@ abstract class IO extends IOConstants {
 		pos = 0
 		push( "file header" )
 		push( "file type" )
-		checkbytestring( "Storage" )
+		checkbytestring( IO.filetype )
 		pop
 
 		push( "format version" )
