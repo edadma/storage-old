@@ -14,7 +14,7 @@ object IO {
   private[storage] val pwidth_default = 5
   private[storage] val cwidth_default = 8
 
-  def bitCeiling(n: Long) = {
+  def bitCeiling(n: Long): Long = {
     val highest = java.lang.Long.highestOneBit(n)
 
     if ((highest ^ n) == 0)
@@ -23,9 +23,9 @@ object IO {
       highest << 1
   }
 
-  def timestamp = Instant.now
+  def timestamp: Instant = Instant.now
 
-  def datetime = OffsetDateTime.now
+  def datetime: OffsetDateTime = OffsetDateTime.now
 }
 
 abstract class IO extends IOConstants {
@@ -432,14 +432,16 @@ abstract class IO extends IOConstants {
 
         pad(p)
       case a: collection.Map[_, _] if a isEmpty => putSimple(EMPTY)
-      case a: collection.Map[Any, Any] =>
-        putAlloc(ARRAY_MEMS).putArrayObject(a) // putAlloc( LIST_MEMS ).putListObject( a )
-      case a: collection.IndexedSeq[_] if a isEmpty      => putSimple(EMPTY_ARRAY)
-      case a: collection.IndexedSeq[_]                   => putAlloc(ARRAY_ELEMS).putArray(a)
-      case a: collection.TraversableOnce[_] if a isEmpty => putSimple(NIL)
-      case a: collection.TraversableOnce[_]              => putAlloc(LIST_ELEMS).putList(a)
-      case a: Blob                                       => putAlloc(BLOB).putBlob(a)
-      case a                                             => sys.error("unknown type: " + a)
+      case a: collection.Map[_, _] =>
+        putAlloc(ARRAY_MEMS).putArrayObject(
+          a.asInstanceOf[collection.Map[Any, Any]],
+        ) // putAlloc( LIST_MEMS ).putListObject( a )
+      case a: collection.IndexedSeq[_] if a isEmpty            => putSimple(EMPTY_ARRAY)
+      case a: collection.IndexedSeq[_]                         => putAlloc(ARRAY_ELEMS).putArray(a)
+      case a: collection.IterableOnce[_] if a.iterator.isEmpty => putSimple(NIL)
+      case a: collection.IterableOnce[_]                       => putAlloc(LIST_ELEMS).putList(a)
+      case a: Blob                                             => putAlloc(BLOB).putBlob(a)
+      case a                                                   => sys.error("unknown type: " + a)
     }
   }
 
@@ -531,7 +533,7 @@ abstract class IO extends IOConstants {
     val elemsptr = pos
     var count = 0L
 
-    for (e <- s) {
+    for (e <- s.iterator) {
       putValue(e)
       count += 1
     }
@@ -569,14 +571,11 @@ abstract class IO extends IOConstants {
         case LIST_ELEMS | LIST_MEMS => (pos + pwidth, pos + 2 * pwidth)
         case t                      => sys.error(f"can only use 'removeListElement' for a list: $t%x, $pos%x")
       }
-    val nextptr =
-      getBig(chunk + 2 * pwidth) match {
-        case NUL =>
-          putBig(chunk + pwidth, getBig(freeptr))
-          putBig(freeptr, chunk)
-          NUL
-        case p => p
-      }
+    val nextptr = getBig(chunk + 2 * pwidth)
+
+    if nextptr == NUL then
+      putBig(chunk + pwidth, getBig(freeptr))
+      putBig(freeptr, chunk)
 
     putBig(chunk + 2 * pwidth, elem)
     addBig(lenptr, -1)

@@ -49,7 +49,7 @@ class ExpandableByteBuffer(maxsize: Int) {
     if (hint > array.length && hint >= 1) {
       val newarray = allocate(IO.bitCeiling(hint).toInt)
 
-      compat.Platform.arraycopy(array, 0, newarray, 0, _size)
+      System.arraycopy(array, 0, newarray, 0, _size)
       array = newarray
     }
 
