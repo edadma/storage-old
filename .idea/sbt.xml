@@ -3,17 +3,16 @@
   <component name="ScalaSbtSettings">
     <option name="linkedExternalProjectsSettings">
       <SbtProjectSettings>
+        <option name="converterVersion" value="1" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
-        <option name="jdk" value="1.8" />
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/project" />
           </set>
         </option>
-        <option name="sbtVersion" value="0.13.15" />
+        <option name="sbtVersion" value="1.6.2" />
       </SbtProjectSettings>
     </option>
-    <option name="vmParameters" value="" />
   </component>
 </project>

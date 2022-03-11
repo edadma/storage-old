@@ -1,4 +1,4 @@
-package xyz.hyperreal.storage
+package io.github.edadma.storage
 
 import java.io.{ByteArrayInputStream, DataInputStream, InputStream}
 
