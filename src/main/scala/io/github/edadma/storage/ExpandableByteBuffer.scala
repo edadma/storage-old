@@ -9,9 +9,9 @@ class ExpandableByteBuffer(maxsize: Int) {
 
   array = allocate(1024)
 
-  def buffer = _buffer
+  def buffer: ByteBuffer = _buffer
 
-  def size = _size
+  def size: Int = _size
 
   def size_=(s: Int): Unit = {
     val cur = _buffer.position()
@@ -23,7 +23,7 @@ class ExpandableByteBuffer(maxsize: Int) {
       _buffer.position(_size)
   }
 
-  def allocate(capacity: Int) = {
+  def allocate(capacity: Int): Array[Byte] = {
     val res = new Array[Byte](capacity)
     val p =
       if (_buffer eq null)
@@ -36,9 +36,9 @@ class ExpandableByteBuffer(maxsize: Int) {
     res
   }
 
-  def getting(bytes: Int) = assert(_buffer.position + bytes <= _size, "attempting to read past end of buffer")
+  def getting(bytes: Int): Unit = assert(_buffer.position + bytes <= _size, "attempting to read past end of buffer")
 
-  def putting(bytes: Int) = {
+  def putting(bytes: Int): Unit = {
     if (_buffer.position + bytes.toLong > maxsize)
       sys.error("size overflow")
 
@@ -47,7 +47,7 @@ class ExpandableByteBuffer(maxsize: Int) {
 
   def sizeHint(hint: Int): Unit = {
     if (hint > array.length && hint >= 1) {
-      val newarray = allocate(IO.bitCeiling(hint).toInt)
+      val newarray = allocate(IO.power_ceil(hint))
 
       System.arraycopy(array, 0, newarray, 0, _size)
       array = newarray

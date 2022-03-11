@@ -14,14 +14,19 @@ object IO {
   private[storage] val pwidth_default = 5
   private[storage] val cwidth_default = 8
 
-  def bitCeiling(n: Long): Long = {
-    val highest = java.lang.Long.highestOneBit(n)
+  def power_ceil(n: Int): Int =
+    require(n >= 0, s"power_ceil: $n is below min input of 0")
+    require(n <= 1073741824, s"power_ceil: $n is above max input of 1073741824")
 
-    if ((highest ^ n) == 0)
-      highest
-    else
-      highest << 1
-  }
+    n match
+      case 0 | 1 => 1
+      case _ =>
+        var x = n - 1
+        var res = 2
+
+        while ({ x >>= 1; x != 0 }) res <<= 1
+
+        res
 
   def timestamp: Instant = Instant.now
 
@@ -38,7 +43,7 @@ abstract class IO extends IOConstants {
 
   private[storage] lazy val maxsize = 1L << pwidth * 8
   private[storage] lazy val vwidth = 1 + cwidth // value width
-  private[storage] lazy val minblocksize = IO.bitCeiling(cwidth + 1).toInt // smallest allocation block needed
+  private[storage] lazy val minblocksize = IO.power_ceil(cwidth + 1) // smallest allocation block needed
   private[storage] lazy val sizeShift = Integer.numberOfTrailingZeros(minblocksize)
   private[storage] lazy val bucketLen = pwidth * 8 - sizeShift
 

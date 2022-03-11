@@ -33,13 +33,13 @@ class MemIO extends IO {
 
   def size: Long = buf.size
 
-  def size_=(l: Long) = buf.size = l.asInstanceOf[Int]
+  def size_=(l: Long) = buf.size = l.toInt
 
   def pos: Long = buf.buffer.position
 
   def pos_=(p: Long): Unit = {
     assert(p <= size, "file pointer must be less than or equal to file size")
-    buf.buffer.position(p.asInstanceOf[Int])
+    buf.buffer.position(p.toInt)
   }
 
   def append: Long = {

@@ -21,7 +21,7 @@ class AllocIO(io: IO) extends MemIO {
       io.putBig(src, base + target)
   }
 
-  private[storage] def allocSize = IO.bitCeiling(size + 1) max minblocksize
+  private[storage] def allocSize = IO.power_ceil(buf.size + 1) max minblocksize
 
   override def toString = f"[alloc: base = $base%x, size = $size%x]"
 }
