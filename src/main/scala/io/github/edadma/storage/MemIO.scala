@@ -23,17 +23,17 @@ class MemIO extends IO {
 
   def force(): Unit = {}
 
-  def readLock(addr: Long) = lock(addr).readLock.lock
+  def readLock(addr: Long): Unit = lock(addr).readLock.lock
 
-  def writeLock(addr: Long) = lock(addr).writeLock.lock
+  def writeLock(addr: Long): Unit = lock(addr).writeLock.lock
 
-  def readUnlock(addr: Long) = lock(addr).readLock.unlock
+  def readUnlock(addr: Long): Unit = lock(addr).readLock.unlock
 
-  def writeUnlock(addr: Long) = lock(addr).writeLock.unlock
+  def writeUnlock(addr: Long): Unit = lock(addr).writeLock.unlock
 
   def size: Long = buf.size
 
-  def size_=(l: Long) = buf.size = l.toInt
+  def size_=(l: Long): Unit = buf.size = l.toInt
 
   def pos: Long = buf.buffer.position
 
@@ -130,7 +130,7 @@ class MemIO extends IO {
     buf.buffer.putDouble(d)
   }
 
-  def writeByteChars(s: String) = s foreach { c => putByte(c.asInstanceOf[Int]) }
+  def writeByteChars(s: String): Unit = s foreach { c => putByte(c.asInstanceOf[Int]) }
 
   def writeBuffer(io: MemIO): Unit = {
     if (io.size > Int.MaxValue)

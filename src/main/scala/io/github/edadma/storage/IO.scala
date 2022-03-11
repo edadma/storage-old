@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.{NoSuchElementException, UUID}
 import scala.collection.AbstractIterator
+import scala.collection.immutable.ArraySeq
 import scala.collection.mutable.{ArrayStack, ListBuffer}
 
 object IO {
@@ -204,7 +205,7 @@ abstract class IO extends IOConstants {
     buf.toString
   }
 
-  def getByteString = {
+  def getByteString: Option[String] = {
     if (remaining >= 1) {
       val len = getUnsignedByte
 
@@ -233,14 +234,14 @@ abstract class IO extends IOConstants {
     getType
   }
 
-  def getTimestamp = Instant.ofEpochMilli(getLong)
+  def getTimestamp: Instant = Instant.ofEpochMilli(getLong)
 
-  def putTimestamp(t: Instant) = putLong(t.toEpochMilli)
+  def putTimestamp(t: Instant): Unit = putLong(t.toEpochMilli)
 
-  def getDatetime =
+  def getDatetime: OffsetDateTime =
     OffsetDateTime.of(getInt, getByte, getByte, getByte, getByte, getByte, getInt, ZoneOffset.ofTotalSeconds(getSmall))
 
-  def putDatetime(datetime: OffsetDateTime) = {
+  def putDatetime(datetime: OffsetDateTime): Unit = {
     putInt(datetime.getYear)
     putByte(datetime.getMonthValue)
     putByte(datetime.getDayOfMonth)
@@ -258,7 +259,7 @@ abstract class IO extends IOConstants {
     putLong(id.getLeastSignificantBits)
   }
 
-  def getBoolean =
+  def getBoolean: Boolean =
     getByte match {
       case TRUE  => true
       case FALSE => false
@@ -267,7 +268,7 @@ abstract class IO extends IOConstants {
 
   private def bool2int(a: Boolean) = if (a) TRUE else FALSE
 
-  def putBoolean(a: Boolean) = putByte(bool2int(a))
+  def putBoolean(a: Boolean): Unit = putByte(bool2int(a))
 
   object Type1 {
     def unapply(t: Int): Option[(Int, Int)] = {
@@ -324,7 +325,7 @@ abstract class IO extends IOConstants {
     res
   }
 
-  def putAlloc(t: Int) = {
+  def putAlloc(t: Int): Unit = {
     putByte(POINTER)
 
     val io = allocPad()
@@ -333,7 +334,7 @@ abstract class IO extends IOConstants {
     io
   }
 
-  def putSimple(t: Int) = {
+  def putSimple(t: Int): Unit = {
     putByte(t)
     padCell
   }
@@ -484,7 +485,7 @@ abstract class IO extends IOConstants {
     }
   }
 
-  def getArrayObject = {
+  def getArrayObject: Map[Any, Any] = {
     val pairs =
       for (_ <- 1L to getBig / 2)
         yield {
@@ -494,7 +495,9 @@ abstract class IO extends IOConstants {
     Map(pairs: _*)
   }
 
-  def getListObject = listElemsIterator grouped 2 map { case Seq((_, k), (_, v)) => (getValue(k), getValue(v)) } toMap
+  def getListObject: Map[Any, Any] = listElemsIterator grouped 2 map { case Seq((_, k), (_, v)) =>
+    (getValue(k), getValue(v))
+  } toMap
 
   def putListObject(m: collection.Map[_, _]): Unit = putList(m.iterator.flatMap(_.productIterator))
 
@@ -503,16 +506,16 @@ abstract class IO extends IOConstants {
     putListObject(m)
   }
 
-  def getArray = arrayElemsIterator map getValue toVector
+  def getArray: IndexedSeq[Any] = arrayElemsIterator map getValue to ArraySeq
 
   def putArray(a: collection.IndexedSeq[Any]): Unit = {
     putBig(a.length)
     a foreach putValue
   }
 
-  def getList = listElemsIterator map { case (_, e) => getValue(e) } toList
+  def getList: Seq[Any] = listElemsIterator map { case (_, e) => getValue(e) } toList
 
-  def putList(s: collection.TraversableOnce[Any]): Unit = {
+  def putList(s: collection.IterableOnce[Any]): Unit = {
     padBig // last chunk pointer
     padBig // chunks with freed elements list pointer
 
@@ -522,7 +525,7 @@ abstract class IO extends IOConstants {
     putListChunk(s, this, cur)
   }
 
-  def putListChunk(s: collection.TraversableOnce[Any], lengthio: IO, lengthptr: Long, contptr: Long = NUL): Unit = {
+  def putListChunk(s: collection.IterableOnce[Any], lengthio: IO, lengthptr: Long, contptr: Long = NUL): Unit = {
     putBig(contptr) // continuation pointer
     padBig // next chunk with freed elements pointer
     padBig // free pointer
@@ -594,14 +597,14 @@ abstract class IO extends IOConstants {
   // Iterators
   //
 
-  private def arrayElemsIterator =
+  private def arrayElemsIterator: Iterator[Long] =
     new AbstractIterator[Long] {
-      var count = getBig
-      var cur = pos
+      private var count = getBig
+      private var cur = pos
 
-      def hasNext = count > 0
+      def hasNext: Boolean = count > 0
 
-      def next =
+      def next: Long =
         if (hasNext) {
           val res = cur
 
@@ -611,14 +614,14 @@ abstract class IO extends IOConstants {
         } else throw new NoSuchElementException("next on empty arrayElemsIterator")
     }
 
-  def arrayIterator(addr: Long) =
+  def arrayIterator(addr: Long): Iterator[Long] =
     getType(addr) match {
       case NIL         => Iterator.empty
       case ARRAY_ELEMS => arrayElemsIterator
       case _           => sys.error("can only use 'arrayIterator' for an array")
     }
 
-  def arrayObjectIterator(addr: Long) =
+  def arrayObjectIterator(addr: Long): Iterator[(Long, Long)] =
     getType(addr) match {
       case NIL        => Iterator.empty
       case ARRAY_MEMS => arrayElemsIterator grouped 2 map { case Seq(k, v) => (k, v) }
@@ -666,9 +669,9 @@ abstract class IO extends IOConstants {
         }
       }
 
-      def hasNext = !done
+      def hasNext: Boolean = !done
 
-      def next =
+      def next: (Long, Long) =
         if (done) throw new NoSuchElementException("next on empty listElemsIterator")
         else {
           val res = (chunkptr, cur)
@@ -680,7 +683,7 @@ abstract class IO extends IOConstants {
     }
   }
 
-  def listIterator(addr: Long) =
+  def listIterator(addr: Long): Iterator[(Long, Long)] =
     getType(addr) match {
       case NIL        => Iterator.empty
       case LIST_ELEMS => listElemsIterator
